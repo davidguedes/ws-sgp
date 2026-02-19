@@ -222,6 +222,22 @@ class AttendanceController {
       next(error);
     }
   }
+
+  static async getByDate(req, res, next) {
+    try {
+      const { date } = req.query;
+      if (!date) {
+        return res.status(400).json({ success: false, message: 'Parâmetro date é obrigatório (YYYY-MM-DD)' });
+      }
+
+      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
+      const attendance = await AttendanceModel.getByDate(date, profissionalId);
+
+      res.json({ success: true, data: attendance });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = AttendanceController;

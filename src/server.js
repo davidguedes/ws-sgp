@@ -52,8 +52,8 @@ app.get('/health', (req, res) => {
 // Rotas da API
 app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
-app.use('/api/patients', attendanceRoutes);
-app.use('/api/patients', evolutionRoutes);
+app.use('/api/attendance', attendanceRoutes);
+app.use('/api/evolution', evolutionRoutes);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TRATAMENTO DE ERROS

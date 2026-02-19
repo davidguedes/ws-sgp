@@ -8,6 +8,8 @@ const {
   updateAttendanceSchema 
 } = require('../utils/validators');
 
+router.get('/', authenticateToken, AttendanceController.getByDate);
+
 // GET /api/patients/:patientId/attendance - Listar frequências do paciente
 router.get('/:patientId/attendance', 
   authenticateToken, 

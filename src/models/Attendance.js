@@ -86,6 +86,22 @@ class AttendanceModel {
     const result = await query(sql, params);
     return result.rows.length > 0;
   }
+
+  static async getByDate(date, profissionalId = null) {
+    let sql = `
+      SELECT a.*
+      FROM attendance a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE DATE(a.date) = $1
+    `;
+    const params = [date];
+    if (profissionalId) {
+      sql += ' AND p.profissional_id = $2';
+      params.push(profissionalId);
+    }
+    const result = await query(sql, params);
+    return result.rows;
+  }
 }
 
 module.exports = AttendanceModel;
