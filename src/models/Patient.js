@@ -103,7 +103,7 @@ class PatientModel {
     } = patientData;
 
     const base = (valor * porcentagem) / 100;
-    const ganho = valor - base;
+    const ganho = base - (base * 0.15);
 
     const result = await query(
       `INSERT INTO patients (
@@ -141,7 +141,7 @@ class PatientModel {
     } = patientData;
 
     const base = (valor * porcentagem) / 100;
-    const ganho = valor - base;
+    const ganho = base - (base * 0.15);
 
     const result = await query(
       `UPDATE patients SET
