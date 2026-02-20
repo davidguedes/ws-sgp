@@ -31,6 +31,7 @@ const createTables = async () => {
         porcentagem DECIMAL(5, 2) NOT NULL,
         base DECIMAL(10, 2) NOT NULL,
         ganho DECIMAL(10, 2) NOT NULL,
+        ganho_fixo NUMERIC(10,2) DEFAULT NULL,
         data_inicio DATE NOT NULL,
         data_fim DATE,
         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,

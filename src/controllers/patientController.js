@@ -36,15 +36,20 @@ class PatientController {
 
   static async create(req, res, next) {
     try {
+      // ganho_fixo vem como número ou null/undefined
+      const ganhoFixoRaw = req.body.ganho_fixo;
+      const ganho_fixo = ganhoFixoRaw != null && ganhoFixoRaw !== '' ? Number(ganhoFixoRaw) : null;
+
       const patientData = {
-        nome:           req.body.nome,
+        nome:            req.body.nome,
         profissional_id: req.body.profissional || req.body.profissional_id,
-        dias:           req.body.dias,
-        horarios:       req.body.horarios,
-        valor:          req.body.valor,
-        porcentagem:    req.body.porcentagem,
-        data_inicio:    req.body.data_inicio,
-        data_fim:       req.body.data_fim || null
+        dias:            req.body.dias,
+        horarios:        req.body.horarios,
+        valor:           req.body.valor,
+        porcentagem:     req.body.porcentagem,
+        ganho_fixo,
+        data_inicio:     req.body.data_inicio,
+        data_fim:        req.body.data_fim || null
       };
 
       const patient = await PatientModel.create(patientData);
@@ -68,15 +73,19 @@ class PatientController {
         return res.status(403).json({ success: false, message: 'Sem permissão para editar este aluno' });
       }
 
+      const ganhoFixoRaw = req.body.ganho_fixo;
+      const ganho_fixo = ganhoFixoRaw != null && ganhoFixoRaw !== '' ? Number(ganhoFixoRaw) : null;
+
       const patientData = {
-        nome:           req.body.nome,
+        nome:            req.body.nome,
         profissional_id: req.body.profissional || req.body.profissional_id,
-        dias:           req.body.dias,
-        horarios:       req.body.horarios,
-        valor:          req.body.valor,
-        porcentagem:    req.body.porcentagem,
-        data_inicio:    req.body.data_inicio,
-        data_fim:       req.body.data_fim || null
+        dias:            req.body.dias,
+        horarios:        req.body.horarios,
+        valor:           req.body.valor,
+        porcentagem:     req.body.porcentagem,
+        ganho_fixo,
+        data_inicio:     req.body.data_inicio,
+        data_fim:        req.body.data_fim || null
       };
 
       const patient = await PatientModel.update(id, patientData);

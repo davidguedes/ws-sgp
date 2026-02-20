@@ -29,6 +29,7 @@ class PatientModel {
       porcentagem: Number(p.porcentagem),
       base: Number(p.base),
       ganho: Number(p.ganho),
+      ganho_fixo: p.ganho_fixo != null ? Number(p.ganho_fixo) : null,
       total_attendance: Number(p.total_attendance),
       total_evolutions: Number(p.total_evolutions),
     }));
@@ -51,7 +52,6 @@ class PatientModel {
     const client = await getClient();
     
     try {
-      // Buscar paciente
       const patientResult = await client.query(
         `SELECT 
           p.*,
@@ -68,13 +68,11 @@ class PatientModel {
 
       const patient = patientResult.rows[0];
 
-      // Buscar frequências
       const attendanceResult = await client.query(
         `SELECT * FROM attendance WHERE patient_id = $1 ORDER BY date DESC`,
         [id]
       );
 
-      // Buscar evoluções
       const evolutionsResult = await client.query(
         `SELECT * FROM evolutions WHERE patient_id = $1 ORDER BY date DESC`,
         [id]
@@ -82,12 +80,26 @@ class PatientModel {
 
       return {
         ...patient,
+        ganho_fixo: patient.ganho_fixo != null ? Number(patient.ganho_fixo) : null,
         attendance: attendanceResult.rows,
         evolutions: evolutionsResult.rows
       };
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Calcula base e ganho considerando ganho_fixo.
+   * Se ganho_fixo estiver definido, ele é usado diretamente como ganho líquido.
+   * Caso contrário, usa o cálculo padrão: (valor * porcentagem / 100) * 0.85
+   */
+  static _calcularGanho(valor, porcentagem, ganho_fixo) {
+    const base = (valor * porcentagem) / 100;
+    const ganho = ganho_fixo != null
+      ? Number(ganho_fixo)
+      : base - (base * 0.15);
+    return { base, ganho };
   }
 
   static async create(patientData) {
@@ -98,18 +110,18 @@ class PatientModel {
       horarios,
       valor,
       porcentagem,
+      ganho_fixo,
       data_inicio,
       data_fim
     } = patientData;
 
-    const base = (valor * porcentagem) / 100;
-    const ganho = base - (base * 0.15);
+    const { base, ganho } = PatientModel._calcularGanho(valor, porcentagem, ganho_fixo ?? null);
 
     const result = await query(
       `INSERT INTO patients (
         nome, profissional_id, dias, horarios, valor, porcentagem,
-        base, ganho, data_inicio, data_fim
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
+        base, ganho, ganho_fixo, data_inicio, data_fim
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
       RETURNING *`,
       [
         nome,
@@ -120,6 +132,7 @@ class PatientModel {
         porcentagem,
         base,
         ganho,
+        ganho_fixo ?? null,
         data_inicio,
         data_fim || null
       ]
@@ -136,12 +149,12 @@ class PatientModel {
       horarios,
       valor,
       porcentagem,
+      ganho_fixo,
       data_inicio,
       data_fim
     } = patientData;
 
-    const base = (valor * porcentagem) / 100;
-    const ganho = base - (base * 0.15);
+    const { base, ganho } = PatientModel._calcularGanho(valor, porcentagem, ganho_fixo ?? null);
 
     const result = await query(
       `UPDATE patients SET
@@ -153,9 +166,10 @@ class PatientModel {
         porcentagem = $6,
         base = $7,
         ganho = $8,
-        data_inicio = $9,
-        data_fim = $10
-      WHERE id = $11
+        ganho_fixo = $9,
+        data_inicio = $10,
+        data_fim = $11
+      WHERE id = $12
       RETURNING *`,
       [
         nome,
@@ -166,6 +180,7 @@ class PatientModel {
         porcentagem,
         base,
         ganho,
+        ganho_fixo ?? null,
         data_inicio,
         data_fim || null,
         id
