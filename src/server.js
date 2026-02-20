@@ -7,6 +7,7 @@ const authRoutes = require('./routes/authRoutes');
 const patientRoutes = require('./routes/patientRoutes');
 const attendanceRoutes = require('./routes/attendanceRoutes');
 const evolutionRoutes = require('./routes/evolutionRoutes');
+const professionalRoutes = require('./routes/professionalRoutes');
 
 // Importar middlewares
 const { errorHandler, notFound } = require('./middlewares/errorHandler');
@@ -54,6 +55,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/patients', patientRoutes);
 app.use('/api/attendance', attendanceRoutes);
 app.use('/api/evolution', evolutionRoutes);
+app.use('/api/users', professionalRoutes);
 
 // ═══════════════════════════════════════════════════════════════════════════
 // TRATAMENTO DE ERROS
