@@ -11,6 +11,5 @@ router.delete('/professionals/:id', authenticateToken, UserController.deleteProf
 router.get('/', authenticateToken, UserController.getAll);
 router.post('/', authenticateToken, UserController.create);
 router.put('/:id', authenticateToken, UserController.update);
-router.delete('/:id', authenticateToken, UserController.delete);
 
 module.exports = router;
