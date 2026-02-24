@@ -24,6 +24,7 @@ const createTables = async () => {
       CREATE TABLE IF NOT EXISTS patients (
         id SERIAL PRIMARY KEY,
         nome VARCHAR(255) NOT NULL,
+        tipo VARCHAR(20) NOT NULL DEFAULT 'fixo',
         profissional_id INTEGER REFERENCES users(id) ON DELETE SET NULL,
         dias TEXT[] NOT NULL,
         horarios JSONB,
@@ -74,6 +75,7 @@ const createTables = async () => {
       CREATE INDEX IF NOT EXISTS idx_attendance_date ON attendance(date);
       CREATE INDEX IF NOT EXISTS idx_evolutions_patient ON evolutions(patient_id);
       CREATE INDEX IF NOT EXISTS idx_evolutions_date ON evolutions(date);
+      CREATE INDEX IF NOT EXISTS idx_patients_tipo ON patients(tipo);
     `);
 
     // Trigger para atualizar updated_at

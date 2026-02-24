@@ -48,6 +48,7 @@ class PatientController {
         valor:           req.body.valor,
         porcentagem:     req.body.porcentagem,
         ganho_fixo,
+        tipo:            req.body.tipo || 'fixo',
         data_inicio:     req.body.data_inicio,
         data_fim:        req.body.data_fim || null
       };
@@ -84,6 +85,7 @@ class PatientController {
         valor:           req.body.valor,
         porcentagem:     req.body.porcentagem,
         ganho_fixo,
+        tipo:            req.body.tipo || 'fixo',
         data_inicio:     req.body.data_inicio,
         data_fim:        req.body.data_fim || null
       };

@@ -36,7 +36,7 @@ const createPatientSchema = Joi.object({
     Joi.string(),
     Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
   ).optional(),
-  valor: Joi.number().positive().required(),
+  valor: Joi.number().positive().allow(0).required(),
   porcentagem: Joi.number().min(0).max(100).required(),
   data_inicio: Joi.date().required(),
   data_inicio: Joi.date(),
@@ -55,7 +55,7 @@ const updatePatientSchema = Joi.object({
     Joi.string(),
     Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
   ).optional(),
-  valor: Joi.number().positive().required(),
+  valor: Joi.number().positive().allow(0).required(),
   porcentagem: Joi.number().min(0).max(100).required(),
   data_inicio: Joi.date().required(),
   data_inicio: Joi.date(),
