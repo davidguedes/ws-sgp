@@ -25,6 +25,7 @@ class PatientModel {
     const result = await query(sql, params);
     return result.rows.map(p => ({
       ...p,
+      tipo: p.tipo || 'fixo',
       valor: Number(p.valor),
       porcentagem: Number(p.porcentagem),
       base: Number(p.base),
@@ -94,7 +95,8 @@ class PatientModel {
    * Se ganho_fixo estiver definido, ele é usado diretamente como ganho líquido.
    * Caso contrário, usa o cálculo padrão: (valor * porcentagem / 100) * 0.85
    */
-  static _calcularGanho(valor, porcentagem, ganho_fixo) {
+  static _calcularGanho(valor, porcentagem, ganho_fixo, tipo) {
+    if (tipo === 'experimental') return { base: 0, ganho: 0 };
     const base = (valor * porcentagem) / 100;
     const ganho = ganho_fixo != null
       ? Number(ganho_fixo)
@@ -111,28 +113,49 @@ class PatientModel {
       valor,
       porcentagem,
       ganho_fixo,
+      tipo = 'fixo',
       data_inicio,
       data_fim
     } = patientData;
 
-    const { base, ganho } = PatientModel._calcularGanho(valor, porcentagem, ganho_fixo ?? null);
+    const isExp = tipo === 'experimental';
+    const { base, ganho } = PatientModel._calcularGanho(
+      isExp ? 0 : valor,
+      isExp ? 0 : porcentagem,
+      isExp ? null : (ganho_fixo ?? null),
+      tipo
+    );
 
+    console.log(nome,
+        profissional_id,
+        dias,
+        JSON.stringify(horarios || {}),
+        isExp ? 0 : valor,
+        isExp ? 0 : porcentagem,
+        base,
+        ganho,
+        isExp ? null : (ganho_fixo ?? null),
+        tipo,
+        data_inicio,
+        data_fim || null);
+    
     const result = await query(
       `INSERT INTO patients (
         nome, profissional_id, dias, horarios, valor, porcentagem,
-        base, ganho, ganho_fixo, data_inicio, data_fim
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11)
+        base, ganho, ganho_fixo, tipo, data_inicio, data_fim
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
       RETURNING *`,
       [
         nome,
         profissional_id,
         dias,
         JSON.stringify(horarios || {}),
-        valor,
-        porcentagem,
+        isExp ? 0 : valor,
+        isExp ? 0 : porcentagem,
         base,
         ganho,
-        ganho_fixo ?? null,
+        isExp ? null : (ganho_fixo ?? null),
+        tipo,
         data_inicio,
         data_fim || null
       ]
@@ -150,11 +173,18 @@ class PatientModel {
       valor,
       porcentagem,
       ganho_fixo,
+      tipo = 'fixo',
       data_inicio,
       data_fim
     } = patientData;
 
-    const { base, ganho } = PatientModel._calcularGanho(valor, porcentagem, ganho_fixo ?? null);
+    const isExp = tipo === 'experimental';
+    const { base, ganho } = PatientModel._calcularGanho(
+      isExp ? 0 : valor,
+      isExp ? 0 : porcentagem,
+      isExp ? null : (ganho_fixo ?? null),
+      tipo
+    );
 
     const result = await query(
       `UPDATE patients SET
@@ -167,20 +197,22 @@ class PatientModel {
         base = $7,
         ganho = $8,
         ganho_fixo = $9,
-        data_inicio = $10,
-        data_fim = $11
-      WHERE id = $12
+        tipo = $10,
+        data_inicio = $11,
+        data_fim = $12
+      WHERE id = $13
       RETURNING *`,
       [
         nome,
         profissional_id,
         dias,
         JSON.stringify(horarios || {}),
-        valor,
-        porcentagem,
+        isExp ? 0 : valor,
+        isExp ? 0 : porcentagem,
         base,
         ganho,
-        ganho_fixo ?? null,
+        isExp ? null : (ganho_fixo ?? null),
+        tipo,
         data_inicio,
         data_fim || null,
         id
