@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const AuthController = require('../controllers/authController');
-const { authenticateToken } = require('../middlewares/auth');
+const { authenticateToken, authorizeRoles } = require('../middlewares/auth');
 const { validate } = require('../middlewares/validator');
 const { 
   loginSchema, 
@@ -15,6 +15,7 @@ router.post('/login', validate(loginSchema), AuthController.login);
 // POST /api/auth/register - Registrar novo usuário (apenas gestor pode criar)
 router.post('/register', 
   authenticateToken,
+  authorizeRoles('gestor'),
   validate(registerSchema), 
   AuthController.register
 );

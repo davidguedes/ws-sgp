@@ -36,10 +36,10 @@ const createPatientSchema = Joi.object({
     Joi.string(),
     Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
   ).optional(),
+  tipo: Joi.string().valid('fixo', 'experimental', 'convenio').required(),
   valor: Joi.number().positive().allow(0).required(),
   porcentagem: Joi.number().min(0).max(100).required(),
   data_inicio: Joi.date().required(),
-  data_inicio: Joi.date(),
   data_fim: Joi.date().allow(null).optional(),
   data_fim: Joi.date().allow(null)
 });
@@ -55,10 +55,10 @@ const updatePatientSchema = Joi.object({
     Joi.string(),
     Joi.string().pattern(/^([01]\d|2[0-3]):([0-5]\d)$/)
   ).optional(),
+  tipo: Joi.string().valid('fixo', 'experimental', 'convenio').required(),
   valor: Joi.number().positive().allow(0).required(),
   porcentagem: Joi.number().min(0).max(100).required(),
   data_inicio: Joi.date().required(),
-  data_inicio: Joi.date(),
   data_fim: Joi.date().allow(null).optional(),
   data_fim: Joi.date().allow(null)
 });

@@ -7,7 +7,8 @@ class PatientModel {
         p.*,
         u.nome as profissional_nome,
         COUNT(DISTINCT a.id) as total_attendance,
-        COUNT(DISTINCT e.id) as total_evolutions
+        COUNT(DISTINCT e.id) as total_evolutions,
+        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas
       FROM patients p
       LEFT JOIN users u ON p.profissional_id = u.id
       LEFT JOIN attendance a ON p.id = a.patient_id
@@ -33,6 +34,8 @@ class PatientModel {
       ganho_fixo: p.ganho_fixo != null ? Number(p.ganho_fixo) : null,
       total_attendance: Number(p.total_attendance),
       total_evolutions: Number(p.total_evolutions),
+      aulas_realizadas: Number(p.aulas_realizadas),
+      ganho_convenio: p.tipo === 'convenio' ? Number(p.ganho) * Number(p.aulas_realizadas) : null
     }));
   }
 
@@ -97,13 +100,18 @@ class PatientModel {
    */
   static _calcularGanho(valor, porcentagem, ganho_fixo, tipo) {
     if (tipo === 'experimental') return { base: 0, ganho: 0 };
+
+    // Convênio: ganho = valor por aula (armazenado em ganho_fixo), base = 0
+    if (tipo === 'convenio') return { base: 0, ganho: Number(ganho_fixo ?? 0) };
+
+    // Fixo: cálculo padrão
     const base = (valor * porcentagem) / 100;
     const ganho = ganho_fixo != null
       ? Number(ganho_fixo)
       : base - (base * 0.15);
     return { base, ganho };
   }
-
+  
   static async create(patientData) {
     const {
       nome,
@@ -119,10 +127,11 @@ class PatientModel {
     } = patientData;
 
     const isExp = tipo === 'experimental';
+    const isConvenio = tipo === 'convenio';
     const { base, ganho } = PatientModel._calcularGanho(
-      isExp ? 0 : valor,
-      isExp ? 0 : porcentagem,
-      isExp ? null : (ganho_fixo ?? null),
+      (isExp || isConvenio) ? 0 : valor,
+      (isExp || isConvenio) ? 0 : porcentagem,
+      isExp ? null : (ganho_fixo ?? null),   // convenio mantém ganho_fixo
       tipo
     );
 
@@ -179,10 +188,11 @@ class PatientModel {
     } = patientData;
 
     const isExp = tipo === 'experimental';
+    const isConvenio = tipo === 'convenio';
     const { base, ganho } = PatientModel._calcularGanho(
-      isExp ? 0 : valor,
-      isExp ? 0 : porcentagem,
-      isExp ? null : (ganho_fixo ?? null),
+      (isExp || isConvenio) ? 0 : valor,
+      (isExp || isConvenio) ? 0 : porcentagem,
+      isExp ? null : (ganho_fixo ?? null),   // convenio mantém ganho_fixo
       tipo
     );
 
