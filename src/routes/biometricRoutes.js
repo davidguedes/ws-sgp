@@ -1,24 +1,23 @@
-// Divide as rotas em dois grupos:
-//   - Públicas: auth/begin e auth/complete (o aluno não está logado)
-//   - Protegidas: registro e gestão (requer JWT de profissional/gestor)
-
-const express  = require('express');
-const router   = express.Router();
-const BiometricController = require('../controllers/biometricController');
+const express    = require('express');
+const router     = express.Router();
+const Biometric  = require('../controllers/biometricController');
 const { authenticateToken } = require('../middlewares/auth');
 
-// ── ROTAS PÚBLICAS (sem JWT) ──────────────────────────────────────────────
-// O aluno se identifica pela biometria — não existe "login" prévio.
-router.post('/auth/begin',    BiometricController.authBegin);
-router.post('/auth/complete', BiometricController.authComplete);
+// ── ROTAS PÚBLICAS ────────────────────────────────────────────────────────
+// Autenticação identificada (patientId conhecido)
+router.post('/auth/begin',    Biometric.authBegin);
+router.post('/auth/complete', Biometric.authComplete);
 
-// ── ROTAS PROTEGIDAS (requer JWT) ────────────────────────────────────────
-// Apenas profissional/gestor pode cadastrar e gerenciar biometrias.
+// Check-in discoverable — "modo academia" (sem patientId)
+router.post('/checkin/begin',    Biometric.checkinBegin);
+router.post('/checkin/complete', Biometric.checkinComplete);
+
+// ── ROTAS PROTEGIDAS (JWT) ────────────────────────────────────────────────
 router.use(authenticateToken);
 
-router.post('/register/begin',    BiometricController.registerBegin);
-router.post('/register/complete', BiometricController.registerComplete);
-router.get('/:patientId',         BiometricController.listCredentials);
-router.delete('/:patientId/:credentialId', BiometricController.deleteCredential);
+router.post('/register/begin',              Biometric.registerBegin);
+router.post('/register/complete',           Biometric.registerComplete);
+router.get('/:patientId',                   Biometric.listCredentials);
+router.delete('/:patientId/:credentialId',  Biometric.deleteCredential);
 
 module.exports = router;
