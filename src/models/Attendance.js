@@ -102,6 +102,40 @@ class AttendanceModel {
     const result = await query(sql, params);
     return result.rows;
   }
+
+  static async createAvulso({ patient_ids, date, valor, notes, profissional_id }) {
+    const results = [];
+    for (const patient_id of patient_ids) {
+      const r = await query(
+        `INSERT INTO attendance (patient_id, date, status, tipo, valor, notes)
+        VALUES ($1, $2, 'present', 'avulso', $3, $4)
+        ON CONFLICT (patient_id, date, tipo) DO UPDATE
+          SET valor = EXCLUDED.valor, notes = EXCLUDED.notes
+        RETURNING *`,
+        [patient_id, date, valor, notes ?? null]
+      );
+      results.push(r.rows[0]);
+    }
+    return results;
+  }
+
+  static async getAvulsoByPeriod(startDate, endDate, profissionalId = null) {
+    let sql = `
+      SELECT a.*, p.nome as patient_nome, p.profissional_id, p.horarios
+      FROM attendance a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE a.tipo = 'avulso'
+        AND DATE(a.date) BETWEEN $1 AND $2
+    `;
+    const params = [startDate, endDate];
+    if (profissionalId) {
+      sql += ' AND p.profissional_id = $3';
+      params.push(profissionalId);
+    }
+    sql += ' ORDER BY a.date ASC';
+    const result = await query(sql, params);
+    return result.rows;
+  }
 }
 
 module.exports = AttendanceModel;

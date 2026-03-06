@@ -21,7 +21,8 @@ class PatientModel {
       params.push(profissionalId);
     }
 
-    sql += ' GROUP BY p.id, u.nome ORDER BY p.created_at DESC';
+    sql += ` GROUP BY p.id, u.nome 
+      ORDER BY p.nome, p.tipo, p.data_fim, p.created_at DESC`;
 
     const result = await query(sql, params);
     return result.rows.map(p => ({

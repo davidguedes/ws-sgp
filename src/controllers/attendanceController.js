@@ -238,6 +238,45 @@ class AttendanceController {
       next(error);
     }
   }
+
+  static async createAvulso(req, res, next) {
+    try {
+      const { patient_ids, date, valor, notes } = req.body;
+
+      if (!patient_ids?.length || !date || !valor) {
+        return res.status(400).json({
+          success: false,
+          message: 'patient_ids, date e valor são obrigatórios'
+        });
+      }
+
+      const records = await AttendanceModel.createAvulso({
+        patient_ids,
+        date,
+        valor,
+        notes,
+        profissional_id: req.user.userId
+      });
+
+      res.status(201).json({ success: true, data: records });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getAvulsoByPeriod(req, res, next) {
+    try {
+      const { start, end } = req.query;
+      if (!start || !end) {
+        return res.status(400).json({ success: false, message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)' });
+      }
+      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
+      const data = await AttendanceModel.getAvulsoByPeriod(start, end, profissionalId);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 module.exports = AttendanceController;
