@@ -8,7 +8,11 @@ class PatientModel {
         u.nome as profissional_nome,
         COUNT(DISTINCT a.id) as total_attendance,
         COUNT(DISTINCT e.id) as total_evolutions,
-        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas
+        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas,
+        -- TRUE se o aluno tiver pelo menos uma credencial biométrica cadastrada
+        EXISTS (
+          SELECT 1 FROM biometric_credentials bc WHERE bc.patient_id = p.id
+        ) as has_biometric
       FROM patients p
       LEFT JOIN users u ON p.profissional_id = u.id
       LEFT JOIN attendance a ON p.id = a.patient_id
