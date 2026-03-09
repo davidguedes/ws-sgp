@@ -15,30 +15,6 @@ class PatientController {
     }
   }
 
-  static async getFinancialByPeriod(req, res, next) {
-    try {
-      const { start, end } = req.query;
-
-      // Validação mínima — datas obrigatórias
-      if (!start || !end) {
-        return res.status(400).json({
-          success: false,
-          message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)'
-        });
-      }
-
-      const profissionalId = req.user.role === 'profissional'
-        ? req.user.userId
-        : null;
-
-      const patients = await PatientModel.findAllWithPeriod(profissionalId, start, end);
-
-      res.json({ success: true, data: patients });
-    } catch (error) {
-      next(error);
-    }
-  }
-
   static async getById(req, res, next) {
     try {
       const { id } = req.params;
@@ -138,6 +114,38 @@ class PatientController {
       await PatientModel.delete(id);
 
       res.json({ success: true, message: 'Aluno excluído com sucesso' });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  static async getFinancialByPeriod(req, res, next) {
+    try {
+      const { start, end } = req.query;
+
+      if (!start || !end) {
+        return res.status(400).json({
+          success: false,
+          message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)'
+        });
+      }
+
+      // Validação básica de formato para evitar SQL injection via parâmetro malformado
+      const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+      if (!dateRegex.test(start) || !dateRegex.test(end)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Formato inválido. Use YYYY-MM-DD'
+        });
+      }
+
+      const profissionalId = req.user.role === 'profissional'
+        ? req.user.userId
+        : null;
+
+      const patients = await PatientModel.findAllWithPeriod(profissionalId, start, end);
+
+      res.json({ success: true, data: patients });
     } catch (error) {
       next(error);
     }
