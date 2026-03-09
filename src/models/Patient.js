@@ -8,11 +8,7 @@ class PatientModel {
         u.nome as profissional_nome,
         COUNT(DISTINCT a.id) as total_attendance,
         COUNT(DISTINCT e.id) as total_evolutions,
-        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas,
-        -- TRUE se o aluno tiver pelo menos uma credencial biométrica cadastrada
-        EXISTS (
-          SELECT 1 FROM biometric_credentials bc WHERE bc.patient_id = p.id
-        ) as has_biometric
+        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas
       FROM patients p
       LEFT JOIN users u ON p.profissional_id = u.id
       LEFT JOIN attendance a ON p.id = a.patient_id
@@ -41,6 +37,68 @@ class PatientModel {
       total_evolutions: Number(p.total_evolutions),
       aulas_realizadas: Number(p.aulas_realizadas),
       ganho_convenio: p.tipo === 'convenio' ? Number(p.ganho) * Number(p.aulas_realizadas) : null
+    }));
+  }
+
+  /**
+   * Retorna pacientes que estavam ativos no período [startDate, endDate].
+   * - Exclui alunos cujo data_inicio é posterior ao fim do período (ainda não existiam)
+   * - Exclui alunos cujo data_fim é anterior ao início do período (já haviam saído)
+   * - aulas_realizadas e ganho_convenio são calculados APENAS para o período informado
+   */
+  static async findAllWithPeriod(profissionalId = null, startDate, endDate) {
+    const params = [startDate, endDate];
+
+    let profFilter = '';
+    if (profissionalId) {
+      params.push(profissionalId);
+      profFilter = `AND p.profissional_id = $${params.length}`;
+    }
+
+    const sql = `
+      SELECT
+        p.*,
+        u.nome AS profissional_nome,
+        COUNT(DISTINCT a_all.id)                                           AS total_attendance,
+        COUNT(DISTINCT e.id)                                               AS total_evolutions,
+        COUNT(CASE WHEN a_period.status IN ('present','makeup')
+                   THEN a_period.id END)                                   AS aulas_realizadas
+      FROM patients p
+      LEFT JOIN users u           ON p.profissional_id = u.id
+      -- histórico total (informativo — não filtrado por período)
+      LEFT JOIN attendance a_all  ON p.id = a_all.patient_id
+      -- apenas presenças dentro do período escolhido
+      LEFT JOIN attendance a_period
+             ON p.id = a_period.patient_id
+            AND a_period.date BETWEEN $1 AND $2
+      LEFT JOIN evolutions e      ON p.id = e.patient_id
+      WHERE
+        -- aluno já existia no início ou durante o período
+        p.data_inicio <= $2
+        -- aluno ainda não tinha saído no início do período (data_fim nula = ativo)
+        AND (p.data_fim IS NULL OR p.data_fim >= $1)
+        ${profFilter}
+      GROUP BY p.id, u.nome
+      ORDER BY p.nome, p.tipo, p.data_fim, p.created_at DESC
+    `;
+
+    const result = await query(sql, params);
+
+    return result.rows.map(p => ({
+      ...p,
+      tipo:             p.tipo || 'fixo',
+      valor:            Number(p.valor),
+      porcentagem:      Number(p.porcentagem),
+      base:             Number(p.base),
+      ganho:            Number(p.ganho),
+      ganho_fixo:       p.ganho_fixo != null ? Number(p.ganho_fixo) : null,
+      total_attendance: Number(p.total_attendance),
+      total_evolutions: Number(p.total_evolutions),
+      aulas_realizadas: Number(p.aulas_realizadas),
+      // ganho_convenio recalculado para o período (aulas * valor por aula)
+      ganho_convenio:   p.tipo === 'convenio'
+        ? Number(p.ganho) * Number(p.aulas_realizadas)
+        : null
     }));
   }
 

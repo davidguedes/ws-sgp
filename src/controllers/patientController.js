@@ -15,6 +15,30 @@ class PatientController {
     }
   }
 
+  static async getFinancialByPeriod(req, res, next) {
+    try {
+      const { start, end } = req.query;
+
+      // Validação mínima — datas obrigatórias
+      if (!start || !end) {
+        return res.status(400).json({
+          success: false,
+          message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)'
+        });
+      }
+
+      const profissionalId = req.user.role === 'profissional'
+        ? req.user.userId
+        : null;
+
+      const patients = await PatientModel.findAllWithPeriod(profissionalId, start, end);
+
+      res.json({ success: true, data: patients });
+    } catch (error) {
+      next(error);
+    }
+  }
+
   static async getById(req, res, next) {
     try {
       const { id } = req.params;

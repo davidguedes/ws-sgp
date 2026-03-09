@@ -1,6 +1,6 @@
 {
   "name": "ws-sgp",
-  "version": "1.1.12",
+  "version": "1.1.17",
   "description": "API Backend para Sistema de Gestão de Pilates",
   "main": "src/server.js",
   "scripts": {

@@ -8,6 +8,7 @@ const { createPatientSchema, updatePatientSchema } = require('../utils/validator
 router.get('/',      authenticateToken, PatientController.getAll);
 // /stats DEVE ficar antes de /:id para não ser capturado como parâmetro
 router.get('/stats', authenticateToken, PatientController.getStats);
+router.get('/financial', authenticateToken, PatientController.getFinancialByPeriod);
 router.get('/:id',   authenticateToken, PatientController.getById);
 
 router.post('/',
