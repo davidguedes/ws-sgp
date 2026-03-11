@@ -3,16 +3,36 @@ const { query, getClient } = require('../config/database');
 class PatientModel {
   static async findAll(profissionalId = null) {
     let sql = `
-      SELECT 
+      WITH attendance_stats AS (
+        SELECT
+          patient_id,
+          COUNT(*) AS total_attendance,
+          COUNT(*) FILTER (
+            WHERE status IN ('present','makeup')
+          ) AS aulas_realizadas
+        FROM attendance
+        GROUP BY patient_id
+      ),
+
+      evolution_stats AS (
+        SELECT
+          patient_id,
+          COUNT(*) AS total_evolutions
+        FROM evolutions
+        GROUP BY patient_id
+      )
+
+      SELECT
         p.*,
-        u.nome as profissional_nome,
-        COUNT(DISTINCT a.id) as total_attendance,
-        COUNT(DISTINCT e.id) as total_evolutions,
-        COUNT(CASE WHEN a.status IN ('present', 'makeup') THEN a.id END) as aulas_realizadas
+        u.nome AS profissional_nome,
+        COALESCE(a.total_attendance,0) AS total_attendance,
+        COALESCE(a.aulas_realizadas,0) AS aulas_realizadas,
+        COALESCE(e.total_evolutions,0) AS total_evolutions
+
       FROM patients p
       LEFT JOIN users u ON p.profissional_id = u.id
-      LEFT JOIN attendance a ON p.id = a.patient_id
-      LEFT JOIN evolutions e ON p.id = e.patient_id
+      LEFT JOIN attendance_stats a ON p.id = a.patient_id
+      LEFT JOIN evolution_stats e ON p.id = e.patient_id
     `;
 
     const params = [];
@@ -21,8 +41,7 @@ class PatientModel {
       params.push(profissionalId);
     }
 
-    sql += ` GROUP BY p.id, u.nome 
-      ORDER BY p.nome, p.tipo, p.data_fim, p.created_at DESC`;
+    sql += ` ORDER BY p.nome, p.tipo, p.data_fim, p.created_at DESC`;
 
     const result = await query(sql, params);
     return result.rows.map(p => ({
@@ -56,29 +75,59 @@ class PatientModel {
     }
 
     const sql = `
+      WITH attendance_total AS (
+        SELECT
+          patient_id,
+          COUNT(*) AS total_attendance
+        FROM attendance
+        GROUP BY patient_id
+      ),
+
+      attendance_period AS (
+        SELECT
+          patient_id,
+          COUNT(*) FILTER (
+            WHERE status IN ('present','makeup')
+          ) AS aulas_realizadas
+        FROM attendance
+        WHERE date BETWEEN $1 AND $2
+        GROUP BY patient_id
+      ),
+
+      evolution_total AS (
+        SELECT
+          patient_id,
+          COUNT(*) AS total_evolutions
+        FROM evolutions
+        GROUP BY patient_id
+      )
+
       SELECT
         p.*,
         u.nome AS profissional_nome,
-        COUNT(DISTINCT a_all.id)                                           AS total_attendance,
-        COUNT(DISTINCT e.id)                                               AS total_evolutions,
-        COUNT(CASE WHEN a_period.status IN ('present','makeup')
-                   THEN a_period.id END)                                   AS aulas_realizadas
+        COALESCE(at.total_attendance,0) AS total_attendance,
+        COALESCE(ap.aulas_realizadas,0) AS aulas_realizadas,
+        COALESCE(et.total_evolutions,0) AS total_evolutions
+
       FROM patients p
-      LEFT JOIN users u           ON p.profissional_id = u.id
-      -- histórico total (informativo — não filtrado por período)
-      LEFT JOIN attendance a_all  ON p.id = a_all.patient_id
-      -- apenas presenças dentro do período escolhido
-      LEFT JOIN attendance a_period
-             ON p.id = a_period.patient_id
-            AND a_period.date BETWEEN $1 AND $2
-      LEFT JOIN evolutions e      ON p.id = e.patient_id
+
+      LEFT JOIN users u
+        ON p.profissional_id = u.id
+
+      LEFT JOIN attendance_total at
+        ON p.id = at.patient_id
+
+      LEFT JOIN attendance_period ap
+        ON p.id = ap.patient_id
+
+      LEFT JOIN evolution_total et
+        ON p.id = et.patient_id
+
       WHERE
-        -- aluno já existia no início ou durante o período
         p.data_inicio <= $2
-        -- aluno ainda não tinha saído no início do período (data_fim nula = ativo)
         AND (p.data_fim IS NULL OR p.data_fim >= $1)
         ${profFilter}
-      GROUP BY p.id, u.nome
+
       ORDER BY p.nome, p.tipo, p.data_fim, p.created_at DESC
     `;
 
@@ -301,13 +350,24 @@ class PatientModel {
 
   static async getStats(profissionalId = null) {
     let sql = `
-      SELECT 
-        COUNT(DISTINCT p.id) as total_alunos,
-        COALESCE(SUM(p.ganho), 0) as ganho_total,
-        COUNT(CASE WHEN a.status = 'present' THEN 1 END) as presencas,
-        COUNT(CASE WHEN a.status = 'absent' THEN 1 END) as faltas
+      WITH attendance_stats AS (
+        SELECT
+          patient_id,
+          COUNT(*) FILTER (WHERE status = 'present') AS presencas,
+          COUNT(*) FILTER (WHERE status = 'absent') AS faltas
+        FROM attendance
+        GROUP BY patient_id
+      )
+
+      SELECT
+        COUNT(p.id) AS total_alunos,
+        COALESCE(SUM(p.ganho),0) AS ganho_total,
+        COALESCE(SUM(a.presencas),0) AS presencas,
+        COALESCE(SUM(a.faltas),0) AS faltas
+
       FROM patients p
-      LEFT JOIN attendance a ON p.id = a.patient_id
+      LEFT JOIN attendance_stats a
+        ON p.id = a.patient_id
     `;
 
     const params = [];
