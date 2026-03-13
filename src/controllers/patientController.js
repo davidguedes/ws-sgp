@@ -24,7 +24,8 @@ class PatientController {
         return res.status(404).json({ success: false, message: 'Aluno não encontrado' });
       }
 
-      if (req.user.role === 'profissional' && patient.profissional_id !== req.user.userId) {
+      // Number() garante comparação correta: userId do JWT pode chegar como string
+      if (req.user.role === 'profissional' && patient.profissional_id !== Number(req.user.userId)) {
         return res.status(403).json({ success: false, message: 'Sem permissão para acessar este aluno' });
       }
 
@@ -70,7 +71,7 @@ class PatientController {
         return res.status(404).json({ success: false, message: 'Aluno não encontrado' });
       }
 
-      if (req.user.role === 'profissional' && existing.profissional_id !== req.user.userId) {
+      if (req.user.role === 'profissional' && existing.profissional_id !== Number(req.user.userId)) {
         return res.status(403).json({ success: false, message: 'Sem permissão para editar este aluno' });
       }
 
@@ -107,7 +108,7 @@ class PatientController {
         return res.status(404).json({ success: false, message: 'Aluno não encontrado' });
       }
 
-      if (req.user.role === 'profissional' && patient.profissional_id !== req.user.userId) {
+      if (req.user.role === 'profissional' && patient.profissional_id !== Number(req.user.userId)) {
         return res.status(403).json({ success: false, message: 'Sem permissão para excluir este aluno' });
       }
 
@@ -154,10 +155,49 @@ class PatientController {
   static async getStats(req, res, next) {
     try {
       const profissionalId = req.user.role === 'profissional'
-        ? req.user.userId
+        ? Number(req.user.userId)
         : null;
 
       const stats = await PatientModel.getStats(profissionalId);
+
+      res.json({ success: true, data: stats });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  // GET /patients/stats/period?start=YYYY-MM-DD&end=YYYY-MM-DD
+  //
+  // Retorna os mesmos campos de getStats mas calculados dentro do período:
+  // - aulas_realizadas conta apenas present/makeup entre start e end
+  // - total_alunos conta apenas os ativos no intervalo (data_inicio <= end AND data_fim >= start)
+  // - ganho_total usa ganho_liquido_periodo proporcional ao período
+  //
+  // Usado pelo dashboard gestor para garantir que os KPIs batem
+  // com o que o financeiro mostra para o mesmo período.
+  static async getStatsByPeriod(req, res, next) {
+    try {
+      const { start, end } = req.query;
+
+      if (!start || !end) {
+        return res.status(400).json({
+          success: false,
+          message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)'
+        });
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(start) || !/^\d{4}-\d{2}-\d{2}$/.test(end)) {
+        return res.status(400).json({
+          success: false,
+          message: 'Formato inválido. Use YYYY-MM-DD'
+        });
+      }
+
+      const profissionalId = req.user.role === 'profissional'
+        ? Number(req.user.userId)
+        : null;
+
+      const stats = await PatientModel.getStatsByPeriod(profissionalId, start, end);
 
       res.json({ success: true, data: stats });
     } catch (error) {
