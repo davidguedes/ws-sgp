@@ -277,6 +277,88 @@ class AttendanceController {
       next(error);
     }
   }
+
+  // ─────────────────────────────────────────────
+  // REPOSIÇÕES PENDENTES
+  // ─────────────────────────────────────────────
+
+  /**
+   * GET /attendance/pending-makeups?date=YYYY-MM-DD
+   *
+   * Lista todos os registros makeup ainda não repostos no mês da data.
+   * Filtrado automaticamente pelo profissional logado.
+   * Retorna array de { id, patient_id, patient_nome, date, notes }.
+   */
+  static async getPendingMakeups(req, res, next) {
+    try {
+      const { date } = req.query;
+      if (!date) {
+        return res.status(400).json({ success: false, message: 'Parâmetro date é obrigatório (YYYY-MM-DD)' });
+      }
+
+      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
+      if (!profissionalId) {
+        // Gestor: retorna lista vazia — alerta não se aplica a gestor
+        return res.json({ success: true, data: [] });
+      }
+
+      const data = await AttendanceModel.getPendingMakeups(profissionalId, date);
+      res.json({ success: true, data });
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * POST /attendance/resolve-reposto
+   *
+   * Body: { makeupId, presentPatientId, presentDate, existingAttendanceId? }
+   *
+   * Atomicamente:
+   *   1. Marca o registro makeup (makeupId) como reposto = TRUE
+   *   2. Cria ou atualiza um registro 'present' para presentPatientId
+   *      em presentDate, vinculado via makeup_origin_id
+   */
+  static async resolveReposto(req, res, next) {
+    try {
+      const { makeupId, presentPatientId, presentDate, existingAttendanceId } = req.body;
+
+      if (!makeupId || !presentPatientId || !presentDate) {
+        return res.status(400).json({
+          success: false,
+          message: 'makeupId, presentPatientId e presentDate são obrigatórios'
+        });
+      }
+
+      // Verificar permissão: o aluno que está sendo marcado deve pertencer ao profissional
+      const patient = await PatientModel.findById(presentPatientId);
+      if (!patient) {
+        return res.status(404).json({ success: false, message: 'Aluno não encontrado' });
+      }
+      if (req.user.role === 'profissional' && patient.profissional_id !== req.user.userId) {
+        return res.status(403).json({ success: false, message: 'Sem permissão para registrar frequência deste aluno' });
+      }
+
+      const result = await AttendanceModel.resolveReposto(
+        makeupId,
+        presentPatientId,
+        presentDate,
+        existingAttendanceId || null
+      );
+
+      res.status(201).json({
+        success: true,
+        message: 'Reposição registrada com sucesso',
+        data: result
+      });
+    } catch (error) {
+      // Erros de negócio (makeup já reposto, não encontrado) viram 409
+      if (error.message?.includes('já foi quitada') || error.message?.includes('não encontrado')) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  }
 }
 
 module.exports = AttendanceController;

@@ -13,6 +13,8 @@ router.get('/', authenticateToken, AttendanceController.getByDate);
 // ✅ Rotas estáticas PRIMEIRO
 router.post('/avulso', authenticateToken, AttendanceController.createAvulso);
 router.get('/avulso', authenticateToken, AttendanceController.getAvulsoByPeriod);
+router.get('/pending-makeups', authenticateToken, AttendanceController.getPendingMakeups);
+router.post('/resolve-reposto', authenticateToken, AttendanceController.resolveReposto);
 
 // ✅ Rotas dinâmicas DEPOIS
 router.get('/:patientId/attendance', authenticateToken, AttendanceController.getByPatient);
