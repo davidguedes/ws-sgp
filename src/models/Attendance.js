@@ -1,19 +1,16 @@
-const { query } = require('../config/database');
+const { query } = require("../config/database");
 
 class AttendanceModel {
   static async findByPatientId(patientId) {
     const result = await query(
-      'SELECT * FROM attendance WHERE patient_id = $1 ORDER BY date DESC',
-      [patientId]
+      "SELECT * FROM attendance WHERE patient_id = $1 ORDER BY date DESC",
+      [patientId],
     );
     return result.rows;
   }
 
   static async findById(id) {
-    const result = await query(
-      'SELECT * FROM attendance WHERE id = $1',
-      [id]
-    );
+    const result = await query("SELECT * FROM attendance WHERE id = $1", [id]);
     return result.rows[0];
   }
 
@@ -24,7 +21,7 @@ class AttendanceModel {
       `INSERT INTO attendance (patient_id, date, status, notes)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [patientId, date, status, notes || '']
+      [patientId, date, status, notes || ""],
     );
 
     return result.rows[0];
@@ -38,7 +35,7 @@ class AttendanceModel {
        SET date = $1, status = $2, notes = $3
        WHERE id = $4
        RETURNING *`,
-      [date, status, notes || '', id]
+      [date, status, notes || "", id],
     );
 
     return result.rows[0];
@@ -48,17 +45,16 @@ class AttendanceModel {
     // Se o registro sendo deletado é uma presença de reposição (makeup_origin_id preenchido),
     // reverte o makeup original para reposto = FALSE — o professor poderá registrá-la novamente.
     const check = await query(
-      'SELECT makeup_origin_id FROM attendance WHERE id = $1',
-      [id]
+      "SELECT makeup_origin_id FROM attendance WHERE id = $1",
+      [id],
     );
     const row = check.rows[0];
     if (row?.makeup_origin_id) {
-      await query(
-        'UPDATE attendance SET reposto = FALSE WHERE id = $1',
-        [row.makeup_origin_id]
-      );
+      await query("UPDATE attendance SET reposto = FALSE WHERE id = $1", [
+        row.makeup_origin_id,
+      ]);
     }
-    await query('DELETE FROM attendance WHERE id = $1', [id]);
+    await query("DELETE FROM attendance WHERE id = $1", [id]);
   }
 
   static async getStats(patientId) {
@@ -70,29 +66,30 @@ class AttendanceModel {
         COUNT(*) as total
       FROM attendance
       WHERE patient_id = $1`,
-      [patientId]
+      [patientId],
     );
 
     const stats = result.rows[0];
-    const attendanceRate = stats.total > 0
-      ? ((parseInt(stats.present) / parseInt(stats.total)) * 100).toFixed(2)
-      : 0;
+    const attendanceRate =
+      stats.total > 0
+        ? ((parseInt(stats.present) / parseInt(stats.total)) * 100).toFixed(2)
+        : 0;
 
     return {
       present: parseInt(stats.present),
       absent: parseInt(stats.absent),
       makeup: parseInt(stats.makeup),
       total: parseInt(stats.total),
-      attendanceRate: parseFloat(attendanceRate)
+      attendanceRate: parseFloat(attendanceRate),
     };
   }
 
   static async checkDuplicate(patientId, date, excludeId = null) {
-    let sql = 'SELECT id FROM attendance WHERE patient_id = $1 AND date = $2';
+    let sql = "SELECT id FROM attendance WHERE patient_id = $1 AND date = $2";
     const params = [patientId, date];
 
     if (excludeId) {
-      sql += ' AND id != $3';
+      sql += " AND id != $3";
       params.push(excludeId);
     }
 
@@ -109,14 +106,20 @@ class AttendanceModel {
     `;
     const params = [date];
     if (profissionalId) {
-      sql += ' AND p.profissional_id = $2';
+      sql += " AND p.profissional_id = $2";
       params.push(profissionalId);
     }
     const result = await query(sql, params);
     return result.rows;
   }
 
-  static async createAvulso({ patient_ids, date, valor, notes, profissional_id }) {
+  static async createAvulso({
+    patient_ids,
+    date,
+    valor,
+    notes,
+    profissional_id,
+  }) {
     const results = [];
     for (const patient_id of patient_ids) {
       const r = await query(
@@ -125,7 +128,7 @@ class AttendanceModel {
         ON CONFLICT (patient_id, date, tipo) DO UPDATE
           SET valor = EXCLUDED.valor, notes = EXCLUDED.notes
         RETURNING *`,
-        [patient_id, date, valor, notes ?? null]
+        [patient_id, date, valor, notes ?? null],
       );
       results.push(r.rows[0]);
     }
@@ -142,10 +145,10 @@ class AttendanceModel {
     `;
     const params = [startDate, endDate];
     if (profissionalId) {
-      sql += ' AND p.profissional_id = $3';
+      sql += " AND p.profissional_id = $3";
       params.push(profissionalId);
     }
-    sql += ' ORDER BY a.date ASC';
+    sql += " ORDER BY a.date ASC";
     const result = await query(sql, params);
     return result.rows;
   }
@@ -162,11 +165,11 @@ class AttendanceModel {
    * ordenadas por data ASC (falta mais antiga primeiro).
    */
   static async getPendingMakeups(profissionalId, referenceDate) {
-    const d     = new Date(referenceDate);
-    const year  = d.getFullYear();
+    const d = new Date(referenceDate);
+    const year = d.getFullYear();
     const month = d.getMonth();
-    const start = new Date(year, month, 1).toISOString().split('T')[0];
-    const end   = new Date(year, month + 1, 0).toISOString().split('T')[0];
+    const start = new Date(year, month, 1).toISOString().split("T")[0];
+    const end = new Date(year, month + 1, 0).toISOString().split("T")[0];
 
     const result = await query(
       `SELECT
@@ -181,9 +184,10 @@ class AttendanceModel {
          AND a.reposto    = FALSE
          AND (a.tipo IS NULL OR a.tipo = 'regular')
          AND p.profissional_id = $1
+         AND p.tipo = 'fixo'
          AND DATE(a.date) BETWEEN $2 AND $3
        ORDER BY a.date ASC`,
-      [profissionalId, start, end]
+      [profissionalId, start, end],
     );
     return result.rows;
   }
@@ -204,36 +208,43 @@ class AttendanceModel {
    * @param {string|null} existingAttendanceId - Se já há registro de presença no dia, atualiza em vez de inserir
    * @returns {{ makeup: object, presence: object }}
    */
-  static async resolveReposto(makeupId, presentPatientId, presentDate, existingAttendanceId = null) {
+  static async resolveReposto(
+    makeupId,
+    presentPatientId,
+    presentDate,
+    existingAttendanceId = null,
+  ) {
     // Garantir que IDs são inteiros — attendance.id é serial4 (INTEGER)
-    const makeupIdInt   = parseInt(makeupId, 10);
-    const patientIdInt  = parseInt(presentPatientId, 10);
-    const existingIdInt = existingAttendanceId ? parseInt(existingAttendanceId, 10) : null;
+    const makeupIdInt = parseInt(makeupId, 10);
+    const patientIdInt = parseInt(presentPatientId, 10);
+    const existingIdInt = existingAttendanceId
+      ? parseInt(existingAttendanceId, 10)
+      : null;
 
     if (isNaN(makeupIdInt) || isNaN(patientIdInt)) {
-      throw new Error('IDs inválidos para resolução de reposição');
+      throw new Error("IDs inválidos para resolução de reposição");
     }
 
-    const client = await require('../config/database').pool.connect();
+    const client = await require("../config/database").pool.connect();
     try {
-      await client.query('BEGIN');
+      await client.query("BEGIN");
 
       // 1. Verificar que o makeup existe e ainda não foi reposto
       const makeupCheck = await client.query(
         `SELECT id, patient_id, reposto FROM attendance WHERE id = $1 AND status = 'makeup'`,
-        [makeupIdInt]
+        [makeupIdInt],
       );
       if (makeupCheck.rows.length === 0) {
-        throw new Error('Registro de reposição não encontrado');
+        throw new Error("Registro de reposição não encontrado");
       }
       if (makeupCheck.rows[0].reposto) {
-        throw new Error('Esta reposição já foi quitada');
+        throw new Error("Esta reposição já foi quitada");
       }
 
       // 2. Marcar o makeup original como reposto
       const makeupResult = await client.query(
         `UPDATE attendance SET reposto = TRUE WHERE id = $1 RETURNING *`,
-        [makeupIdInt]
+        [makeupIdInt],
       );
 
       // 3. Criar ou atualizar presença do aluno na data informada
@@ -244,7 +255,7 @@ class AttendanceModel {
            SET status = 'present', makeup_origin_id = $1
            WHERE id = $2
            RETURNING *`,
-          [makeupIdInt, existingIdInt]
+          [makeupIdInt, existingIdInt],
         );
       } else {
         presenceResult = await client.query(
@@ -253,17 +264,17 @@ class AttendanceModel {
            ON CONFLICT (patient_id, date, tipo) DO UPDATE
              SET status = 'present', makeup_origin_id = EXCLUDED.makeup_origin_id
            RETURNING *`,
-          [patientIdInt, presentDate, makeupIdInt]
+          [patientIdInt, presentDate, makeupIdInt],
         );
       }
 
-      await client.query('COMMIT');
+      await client.query("COMMIT");
       return {
-        makeup:   makeupResult.rows[0],
-        presence: presenceResult.rows[0]
+        makeup: makeupResult.rows[0],
+        presence: presenceResult.rows[0],
       };
     } catch (err) {
-      await client.query('ROLLBACK');
+      await client.query("ROLLBACK");
       throw err;
     } finally {
       client.release();
