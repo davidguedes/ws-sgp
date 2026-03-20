@@ -20,3 +20,6 @@ CREATE INDEX IF NOT EXISTS idx_attendance_makeup_pendente
 CREATE INDEX IF NOT EXISTS idx_attendance_makeup_origin
   ON attendance (makeup_origin_id)
   WHERE makeup_origin_id IS NOT NULL;
+
+ALTER TABLE attendance 
+  ADD COLUMN IF NOT EXISTS makeup_scheduled_date DATE;

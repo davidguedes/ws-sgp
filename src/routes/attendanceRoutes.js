@@ -15,6 +15,7 @@ router.post('/avulso', authenticateToken, AttendanceController.createAvulso);
 router.get('/avulso', authenticateToken, AttendanceController.getAvulsoByPeriod);
 router.get('/pending-makeups', authenticateToken, AttendanceController.getPendingMakeups);
 router.post('/resolve-reposto', authenticateToken, AttendanceController.resolveReposto);
+router.patch('/schedule-makeup', authenticateToken, AttendanceController.scheduleMakeup);
 
 // ✅ Rotas dinâmicas DEPOIS
 router.get('/:patientId/attendance', authenticateToken, AttendanceController.getByPatient);

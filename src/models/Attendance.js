@@ -173,22 +173,27 @@ class AttendanceModel {
 
     const result = await query(
       `SELECT
-         a.id,
-         a.patient_id,
-         a.date,
-         a.notes,
-         p.nome AS patient_nome
-       FROM attendance a
-       JOIN patients p ON a.patient_id = p.id
-       WHERE a.status     = 'makeup'
-         AND a.reposto    = FALSE
-         AND (a.tipo IS NULL OR a.tipo = 'regular')
-         AND p.profissional_id = $1
-         AND p.tipo = 'fixo'
-         AND DATE(a.date) BETWEEN $2 AND $3
-         AND (DATE(p.data_fim) > DATE($4) OR p.data_fim IS NULL)
-         AND (DATE(p.data_inicio) <= DATE($4) OR p.data_inicio IS NULL)
-       ORDER BY a.date ASC`,
+        a.id,
+        a.patient_id,
+        a.date::date                           AS date,
+        a.notes,
+        a.makeup_scheduled_date::date          AS makeup_scheduled_date,
+        p.nome AS patient_nome
+      FROM attendance a
+      JOIN patients p ON a.patient_id = p.id
+      WHERE a.status  = 'makeup'
+        AND a.reposto = FALSE
+        AND (a.tipo IS NULL OR a.tipo = 'regular')
+        AND p.profissional_id = $1
+        AND p.tipo = 'fixo'
+        AND (
+          DATE(a.date) BETWEEN $2 AND $3
+          OR
+          DATE(a.makeup_scheduled_date) BETWEEN $2 AND $3
+        )
+        AND (DATE(p.data_fim) > DATE($4) OR p.data_fim IS NULL)
+        AND (DATE(p.data_inicio) <= DATE($4) OR p.data_inicio IS NULL)
+      ORDER BY a.makeup_scheduled_date ASC NULLS LAST, a.date ASC`,
       [profissionalId, start, end, d],
     );
 
@@ -282,6 +287,26 @@ class AttendanceModel {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Agenda uma data de reposição para um registro makeup existente.
+   * Apenas preenche makeup_scheduled_date — não cria nenhum attendance novo.
+   */
+  static async scheduleMakeup(makeupId, scheduledDate) {
+    const result = await query(
+      `UPDATE attendance 
+      SET makeup_scheduled_date = $1 
+      WHERE id = $2 AND status = 'makeup' AND reposto = FALSE
+      RETURNING *`,
+      [scheduledDate, parseInt(makeupId, 10)],
+    );
+
+    if (result.rows.length === 0) {
+      throw new Error("Registro não encontrado ou já foi reposto");
+    }
+
+    return result.rows[0];
   }
 }
 

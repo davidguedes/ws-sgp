@@ -1,5 +1,5 @@
-const AttendanceModel = require('../models/Attendance');
-const PatientModel = require('../models/Patient');
+const AttendanceModel = require("../models/Attendance");
+const PatientModel = require("../models/Patient");
 
 class AttendanceController {
   static async getByPatient(req, res, next) {
@@ -8,19 +8,21 @@ class AttendanceController {
 
       // Verificar se paciente existe e se usuário tem permissão
       const patient = await PatientModel.findById(patientId);
-      
+
       if (!patient) {
         return res.status(404).json({
           success: false,
-          message: 'Aluno não encontrado'
+          message: "Aluno não encontrado",
         });
       }
 
-      if (req.user.role === 'profissional' && 
-          patient.profissional_id !== req.user.userId) {
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Sem permissão para acessar frequências deste aluno'
+          message: "Sem permissão para acessar frequências deste aluno",
         });
       }
 
@@ -28,7 +30,7 @@ class AttendanceController {
 
       res.json({
         success: true,
-        data: attendance
+        data: attendance,
       });
     } catch (error) {
       next(error);
@@ -42,42 +44,44 @@ class AttendanceController {
 
       // Verificar se paciente existe e se usuário tem permissão
       const patient = await PatientModel.findById(patientId);
-      
+
       if (!patient) {
         return res.status(404).json({
           success: false,
-          message: 'Aluno não encontrado'
+          message: "Aluno não encontrado",
         });
       }
 
-      if (req.user.role === 'profissional' && 
-          patient.profissional_id !== req.user.userId) {
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Sem permissão para registrar frequência deste aluno'
+          message: "Sem permissão para registrar frequência deste aluno",
         });
       }
 
       // Verificar duplicidade
       const isDuplicate = await AttendanceModel.checkDuplicate(patientId, date);
-      
+
       if (isDuplicate) {
         return res.status(409).json({
           success: false,
-          message: 'Já existe um registro de frequência para esta data'
+          message: "Já existe um registro de frequência para esta data",
         });
       }
 
       const attendance = await AttendanceModel.create(patientId, {
         date,
         status,
-        notes
+        notes,
       });
 
       res.status(201).json({
         success: true,
-        message: 'Frequência registrada com sucesso',
-        data: attendance
+        message: "Frequência registrada com sucesso",
+        data: attendance,
       });
     } catch (error) {
       next(error);
@@ -91,56 +95,58 @@ class AttendanceController {
 
       // Verificar se paciente existe e se usuário tem permissão
       const patient = await PatientModel.findById(patientId);
-      
+
       if (!patient) {
         return res.status(404).json({
           success: false,
-          message: 'Aluno não encontrado'
+          message: "Aluno não encontrado",
         });
       }
 
-      if (req.user.role === 'profissional' && 
-          patient.profissional_id !== req.user.userId) {
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Sem permissão para editar frequência deste aluno'
+          message: "Sem permissão para editar frequência deste aluno",
         });
       }
 
       // Verificar se frequência existe
       const existingAttendance = await AttendanceModel.findById(attendanceId);
-      
+
       if (!existingAttendance) {
         return res.status(404).json({
           success: false,
-          message: 'Registro de frequência não encontrado'
+          message: "Registro de frequência não encontrado",
         });
       }
 
       // Verificar duplicidade (excluindo o registro atual)
       const isDuplicate = await AttendanceModel.checkDuplicate(
-        patientId, 
-        date, 
-        attendanceId
+        patientId,
+        date,
+        attendanceId,
       );
-      
+
       if (isDuplicate) {
         return res.status(409).json({
           success: false,
-          message: 'Já existe um registro de frequência para esta data'
+          message: "Já existe um registro de frequência para esta data",
         });
       }
 
       const attendance = await AttendanceModel.update(attendanceId, {
         date,
         status,
-        notes
+        notes,
       });
 
       res.json({
         success: true,
-        message: 'Frequência atualizada com sucesso',
-        data: attendance
+        message: "Frequência atualizada com sucesso",
+        data: attendance,
       });
     } catch (error) {
       next(error);
@@ -153,29 +159,31 @@ class AttendanceController {
 
       // Verificar se paciente existe e se usuário tem permissão
       const patient = await PatientModel.findById(patientId);
-      
+
       if (!patient) {
         return res.status(404).json({
           success: false,
-          message: 'Aluno não encontrado'
+          message: "Aluno não encontrado",
         });
       }
 
-      if (req.user.role === 'profissional' && 
-          patient.profissional_id !== req.user.userId) {
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Sem permissão para excluir frequência deste aluno'
+          message: "Sem permissão para excluir frequência deste aluno",
         });
       }
 
       // Verificar se frequência existe
       const attendance = await AttendanceModel.findById(attendanceId);
-      
+
       if (!attendance) {
         return res.status(404).json({
           success: false,
-          message: 'Registro de frequência não encontrado'
+          message: "Registro de frequência não encontrado",
         });
       }
 
@@ -183,7 +191,7 @@ class AttendanceController {
 
       res.json({
         success: true,
-        message: 'Frequência excluída com sucesso'
+        message: "Frequência excluída com sucesso",
       });
     } catch (error) {
       next(error);
@@ -196,19 +204,21 @@ class AttendanceController {
 
       // Verificar se paciente existe e se usuário tem permissão
       const patient = await PatientModel.findById(patientId);
-      
+
       if (!patient) {
         return res.status(404).json({
           success: false,
-          message: 'Aluno não encontrado'
+          message: "Aluno não encontrado",
         });
       }
 
-      if (req.user.role === 'profissional' && 
-          patient.profissional_id !== req.user.userId) {
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
         return res.status(403).json({
           success: false,
-          message: 'Sem permissão para acessar estatísticas deste aluno'
+          message: "Sem permissão para acessar estatísticas deste aluno",
         });
       }
 
@@ -216,7 +226,7 @@ class AttendanceController {
 
       res.json({
         success: true,
-        data: stats
+        data: stats,
       });
     } catch (error) {
       next(error);
@@ -227,10 +237,16 @@ class AttendanceController {
     try {
       const { date } = req.query;
       if (!date) {
-        return res.status(400).json({ success: false, message: 'Parâmetro date é obrigatório (YYYY-MM-DD)' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Parâmetro date é obrigatório (YYYY-MM-DD)",
+          });
       }
 
-      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
+      const profissionalId =
+        req.user.role === "profissional" ? req.user.userId : null;
       const attendance = await AttendanceModel.getByDate(date, profissionalId);
 
       res.json({ success: true, data: attendance });
@@ -246,7 +262,7 @@ class AttendanceController {
       if (!patient_ids?.length || !date || !valor) {
         return res.status(400).json({
           success: false,
-          message: 'patient_ids, date e valor são obrigatórios'
+          message: "patient_ids, date e valor são obrigatórios",
         });
       }
 
@@ -255,7 +271,7 @@ class AttendanceController {
         date,
         valor,
         notes,
-        profissional_id: req.user.userId
+        profissional_id: req.user.userId,
       });
 
       res.status(201).json({ success: true, data: records });
@@ -268,10 +284,20 @@ class AttendanceController {
     try {
       const { start, end } = req.query;
       if (!start || !end) {
-        return res.status(400).json({ success: false, message: 'Parâmetros start e end são obrigatórios (YYYY-MM-DD)' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Parâmetros start e end são obrigatórios (YYYY-MM-DD)",
+          });
       }
-      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
-      const data = await AttendanceModel.getAvulsoByPeriod(start, end, profissionalId);
+      const profissionalId =
+        req.user.role === "profissional" ? req.user.userId : null;
+      const data = await AttendanceModel.getAvulsoByPeriod(
+        start,
+        end,
+        profissionalId,
+      );
       res.json({ success: true, data });
     } catch (error) {
       next(error);
@@ -293,16 +319,25 @@ class AttendanceController {
     try {
       const { date } = req.query;
       if (!date) {
-        return res.status(400).json({ success: false, message: 'Parâmetro date é obrigatório (YYYY-MM-DD)' });
+        return res
+          .status(400)
+          .json({
+            success: false,
+            message: "Parâmetro date é obrigatório (YYYY-MM-DD)",
+          });
       }
 
-      const profissionalId = req.user.role === 'profissional' ? req.user.userId : null;
+      const profissionalId =
+        req.user.role === "profissional" ? req.user.userId : null;
       if (!profissionalId) {
         // Gestor: retorna lista vazia — alerta não se aplica a gestor
         return res.json({ success: true, data: [] });
       }
 
-      const data = await AttendanceModel.getPendingMakeups(profissionalId, date);
+      const data = await AttendanceModel.getPendingMakeups(
+        profissionalId,
+        date,
+      );
       res.json({ success: true, data });
     } catch (error) {
       next(error);
@@ -321,39 +356,107 @@ class AttendanceController {
    */
   static async resolveReposto(req, res, next) {
     try {
-      const { makeupId, presentPatientId, presentDate, existingAttendanceId } = req.body;
+      const { makeupId, presentPatientId, presentDate, existingAttendanceId } =
+        req.body;
 
       if (!makeupId || !presentPatientId || !presentDate) {
         return res.status(400).json({
           success: false,
-          message: 'makeupId, presentPatientId e presentDate são obrigatórios'
+          message: "makeupId, presentPatientId e presentDate são obrigatórios",
         });
       }
 
       // Verificar permissão: o aluno que está sendo marcado deve pertencer ao profissional
       const patient = await PatientModel.findById(presentPatientId);
       if (!patient) {
-        return res.status(404).json({ success: false, message: 'Aluno não encontrado' });
+        return res
+          .status(404)
+          .json({ success: false, message: "Aluno não encontrado" });
       }
-      if (req.user.role === 'profissional' && patient.profissional_id !== req.user.userId) {
-        return res.status(403).json({ success: false, message: 'Sem permissão para registrar frequência deste aluno' });
+      if (
+        req.user.role === "profissional" &&
+        patient.profissional_id !== req.user.userId
+      ) {
+        return res
+          .status(403)
+          .json({
+            success: false,
+            message: "Sem permissão para registrar frequência deste aluno",
+          });
       }
 
       const result = await AttendanceModel.resolveReposto(
         makeupId,
         presentPatientId,
         presentDate,
-        existingAttendanceId || null
+        existingAttendanceId || null,
       );
 
       res.status(201).json({
         success: true,
-        message: 'Reposição registrada com sucesso',
-        data: result
+        message: "Reposição registrada com sucesso",
+        data: result,
       });
     } catch (error) {
       // Erros de negócio (makeup já reposto, não encontrado) viram 409
-      if (error.message?.includes('já foi quitada') || error.message?.includes('não encontrado')) {
+      if (
+        error.message?.includes("já foi quitada") ||
+        error.message?.includes("não encontrado")
+      ) {
+        return res.status(409).json({ success: false, message: error.message });
+      }
+      next(error);
+    }
+  }
+
+  /**
+   * PATCH /attendance/schedule-makeup
+   * Body: { makeupId, scheduledDate }
+   *
+   * Define ou atualiza a data agendada de uma reposição.
+   */
+  static async scheduleMakeup(req, res, next) {
+    try {
+      const { makeupId, scheduledDate } = req.body;
+
+      if (!makeupId || !scheduledDate) {
+        return res.status(400).json({
+          success: false,
+          message: "makeupId e scheduledDate são obrigatórios",
+        });
+      }
+
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(scheduledDate)) {
+        return res.status(400).json({
+          success: false,
+          message: "scheduledDate deve estar no formato YYYY-MM-DD",
+        });
+      }
+
+      // Verifica se a data agendada não é no passado
+      const today = new Date().toISOString().split("T")[0];
+      if (scheduledDate < today) {
+        return res.status(400).json({
+          success: false,
+          message: "A data agendada não pode ser no passado",
+        });
+      }
+
+      const result = await AttendanceModel.scheduleMakeup(
+        makeupId,
+        scheduledDate,
+      );
+
+      res.json({
+        success: true,
+        message: "Reposição agendada com sucesso",
+        data: result,
+      });
+    } catch (error) {
+      if (
+        error.message?.includes("não encontrado") ||
+        error.message?.includes("já foi reposto")
+      ) {
         return res.status(409).json({ success: false, message: error.message });
       }
       next(error);
