@@ -186,9 +186,12 @@ class AttendanceModel {
          AND p.profissional_id = $1
          AND p.tipo = 'fixo'
          AND DATE(a.date) BETWEEN $2 AND $3
+         AND (DATE(p.data_fim) > DATE($4) OR p.data_fim IS NULL)
+         AND (DATE(p.data_inicio) <= DATE($4) OR p.data_inicio IS NULL)
        ORDER BY a.date ASC`,
-      [profissionalId, start, end],
+      [profissionalId, start, end, d],
     );
+
     return result.rows;
   }
 
